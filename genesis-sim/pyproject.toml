@@ -1,0 +1,61 @@
+[project]
+name = "genesis-sim"
+version = "0.1.0"
+description = "Genesis-based simulator for the Manito SCARA robot arm"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "cython>=3.2.4",
+    "fastapi>=0.135.1",
+    "genesis-world[dev]==0.4.3",
+    "numpy>=2.4.3",
+    "setuptools>=82.0.1",
+    "typer>=0.24.1",
+    "wheel>=0.46.3",
+    "pyglet==2.1.6",
+    "PyOpenGL==3.1.9",
+    "glfw==2.9.0",
+    "uvicorn>=0.41.0",
+    "torch==2.9.1+cu128",
+    "torchvision==0.24.1+cu128",
+    "opencv-python>=4.13.0.92",
+    "pyyaml>=6.0.3",
+    "websockets>=16.0",
+]
+
+[project.scripts]
+simctl = "src.cli:cli_entry_point"
+
+# Without a build backend uv treats the project as unpackaged and silently
+# skips [project.scripts], which left `simctl` undefined. Installed editable,
+# so the console script runs the working tree.
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+# The scripts extra points at a git URL rather than a package index.
+[tool.hatch.metadata]
+allow-direct-references = true
+
+# The Manito client is only needed to run user Python scripts (the editor's
+# Python tab and `simctl run`). Kept optional so the simulator itself installs
+# without reaching for another repository.
+[project.optional-dependencies]
+scripts = ["manito-api @ git+ssh://git@gitea.liria.cl:5001/manito/py-api.git"]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+torchvision = { index = "pytorch-cu128" }
+
+[dependency-groups]
+dev = [
+    "nodeenv>=1.10.0",
+]

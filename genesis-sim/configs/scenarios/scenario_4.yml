@@ -1,0 +1,45 @@
+# configs/scenarios/scenario_4.yml
+viewer:
+  camera_pos: [2.0, 0.0, 1.5]
+  camera_lookat: [0.0, 0.0, 0.2]
+
+environment:
+  plane: true
+  gravity: [0.0, 0.0, -9.81]
+
+robots:
+  - name: "Manito 1"
+    urdf_path: "assets/robots/manito/manito.urdf"
+    position: [0.0, 0.0, 0.0]
+    euler: [0.0, 0.0, 0]
+    fixed: true
+    is_main: true
+  - name: "Manito 2"
+    urdf_path: "assets/robots/manito/manito.urdf"
+    position: [0.50, 0.0, 0.0]
+    euler: [0.0, 0.0, 0]
+    fixed: true
+    is_main: false
+
+objects:
+  - name: "Cubo Rojo"
+    type: "box"
+    pos: [0.0, 0.2, 0.02]
+    size: [0.04, 0.04, 0.04]
+    color: [1.0, 0.0, 0.0]
+    surface: "rough"
+  - name: "Cubo Amarillo"
+    type: "box"
+    pos: [0.50, 0.2, 0.02]
+    size: [0.04, 0.04, 0.04]
+    color: [1.0, 0.84, 0.0]
+    surface: "rough"
+
+stream_camera:
+  pos: [1.5, 1.5, 1.0]
+  lookat: [0.0, 0.0, 0.2]
+  res: [640, 480]
+
+objectives:
+  - id: "levantar_cubos_por_separado"
+    description: "Manito 1 debe tomar el cubo rojo y levantarlo. Luego Manito 2 debe tomar el cubo amarillo y levantarlo."

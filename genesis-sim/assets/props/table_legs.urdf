@@ -1,0 +1,79 @@
+<?xml version="1.0" ?>
+<!-- Las 4 patas cilíndricas de la mesa. Separadas del tablero para aplicar materiales independientes. -->
+<robot name="table_legs">
+	<link name="patas">
+		<inertial>
+			<origin rpy="0 0 0" xyz="0 0 0.5"/>
+			<mass value="20.0"/>
+			<inertia ixx="2.0" ixy="0.0" ixz="0.0" iyy="2.0" iyz="0.0" izz="2.0"/>
+		</inertial>
+
+		<!-- Pata delantera derecha (+X, +Y) -->
+		<collision>
+			<origin rpy="0 0 0" xyz="0.68 0.38 0.5"/>
+			<geometry>
+				<cylinder radius="0.02" length="1.0"/>
+			</geometry>
+		</collision>
+		<visual>
+			<origin rpy="0 0 0" xyz="0.68 0.38 0.5"/>
+			<geometry>
+				<cylinder radius="0.02" length="1.0"/>
+			</geometry>
+			<material name="patas_mat">
+				<color rgba="0.5 0.5 0.5 1.0"/>
+			</material>
+		</visual>
+
+		<!-- Pata delantera izquierda (+X, -Y) -->
+		<collision>
+			<origin rpy="0 0 0" xyz="0.68 -0.38 0.5"/>
+			<geometry>
+				<cylinder radius="0.02" length="1.0"/>
+			</geometry>
+		</collision>
+		<visual>
+			<origin rpy="0 0 0" xyz="0.68 -0.38 0.5"/>
+			<geometry>
+				<cylinder radius="0.02" length="1.0"/>
+			</geometry>
+			<material name="patas_mat">
+				<color rgba="0.5 0.5 0.5 1.0"/>
+			</material>
+		</visual>
+
+		<!-- Pata trasera izquierda (-X, -Y) -->
+		<collision>
+			<origin rpy="0 0 0" xyz="-0.68 -0.38 0.5"/>
+			<geometry>
+				<cylinder radius="0.02" length="1.0"/>
+			</geometry>
+		</collision>
+		<visual>
+			<origin rpy="0 0 0" xyz="-0.68 -0.38 0.5"/>
+			<geometry>
+				<cylinder radius="0.02" length="1.0"/>
+			</geometry>
+			<material name="patas_mat">
+				<color rgba="0.5 0.5 0.5 1.0"/>
+			</material>
+		</visual>
+
+		<!-- Pata trasera derecha (-X, +Y) -->
+		<collision>
+			<origin rpy="0 0 0" xyz="-0.68 0.38 0.5"/>
+			<geometry>
+				<cylinder radius="0.02" length="1.0"/>
+			</geometry>
+		</collision>
+		<visual>
+			<origin rpy="0 0 0" xyz="-0.68 0.38 0.5"/>
+			<geometry>
+				<cylinder radius="0.02" length="1.0"/>
+			</geometry>
+			<material name="patas_mat">
+				<color rgba="0.5 0.5 0.5 1.0"/>
+			</material>
+		</visual>
+	</link>
+</robot>

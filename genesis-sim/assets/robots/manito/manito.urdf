@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot name="manito">
+
+  <!-- ================= MATERIALES ================= -->
+  <material name="robot_white">
+    <color rgba="0.95 0.95 0.95 1.0"/>
+  </material>
+  <material name="robot_blue">
+    <color rgba="0.1 0.4 0.8 1.0"/>
+  </material>
+  <material name="robot_gray_joint">
+    <color rgba="0.5 0.5 0.5 1.0"/>
+  </material>
+  <material name="base_blue_transparent">
+    <color rgba="0.0 0.0 0.8 0.5"/>
+  </material>
+
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="0.05 0.05 0.05"/>
+      </geometry>
+      <material name="base_blue_transparent">
+      </material>
+    </visual>
+  </link>
+
+  <!-- ==================== LINK 1 ==================== -->
+  <link name="Link_1">
+    <inertial>
+      <origin xyz="-0.0061196 -0.014834 0.033593" rpy="0 0 0"/>
+      <mass value="0.76046"/>
+      <inertia ixx="0.0025082" ixy="-4.3537E-06" ixz="-4.74E-06"
+               iyy="0.0013747" iyz="-1.4847E-05" izz="0.0036723"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="package://meshes/link_1.stl"/>
+      </geometry>
+      <material name="robot_white"/>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://meshes/link_1.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Joint que conecta base con Link_1 -->
+  <joint name="base_to_link1" type="fixed">
+    <parent link="base_link"/>
+    <child link="Link_1"/>
+    <origin xyz="0 0 0.05"/>
+  </joint>
+
+  <!-- ==================== LINK 2 ==================== -->
+  <link name="Link_2">
+    <inertial>
+      <origin xyz="0.0019558 0.0060429 0.27615" rpy="0 0 0"/>
+      <mass value="0.41562"/>
+      <inertia ixx="0.002108" ixy="3.4914E-06" ixz="-4.5883E-07"
+               iyy="0.0021187" iyz="-8.9137E-07" izz="0.00038723"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="package://meshes/link_2.stl"/>
+      </geometry>
+      <material name="robot_blue"/>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://meshes/link_2.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- =========== JOINT 1 (Link_1 → Link_2) ========== -->
+  <joint name="Joint_1" type="revolute">
+    <origin xyz="-6.0162E-05 0.050566 0.0765" rpy="0 0 0.3174"/>
+    <!-- <origin xyz="-6.0162E-05 0.050566 0.0765" rpy="0 0 0"/> -->
+    <parent link="Link_1"/>
+    <child link="Link_2"/>
+    <axis xyz="0 0 1"/>
+    <!-- LIMITACIÓN ORIGINAL: Exportada de CAD, restringe el hombro estrictamente de -90 a +90 grados. -->
+    <!-- <limit lower="-1.57" upper="1.57" effort="10" velocity="0.5"/> -->
+    <limit lower="-3.14" upper="3.14" effort="10" velocity="0.5"/>
+  </joint>
+
+  <!-- ==================== LINK 3 ==================== -->
+  <link name="Link_3">
+    <inertial>
+      <origin xyz="0.029085 0.088235 -0.02114" rpy="0 0 0"/>
+      <mass value="0.54586"/>
+      <inertia ixx="0.0011589" ixy="-0.00022605" ixz="1.9736E-06"
+               iyy="0.00055347" iyz="5.3963E-06" izz="0.0015701"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="package://meshes/link_3.stl"/>
+      </geometry>
+      <material name="robot_white"/>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://meshes/link_3.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- =========== JOINT 2 (Link_2 → Link_3) ========== -->
+  <joint name="Joint_2" type="prismatic">
+    <origin xyz="0.0010426 0.0031605 0.18854" rpy="0 0 0"/>
+    <parent link="Link_2"/>
+    <child link="Link_3"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-0.1" upper="0.1" effort="10" velocity="0.05"/>
+  </joint>
+
+  <!-- ==================== LINK 4 ==================== -->
+  <link name="Link_4">
+    <inertial>
+      <origin xyz="-0.012001 0.081545 -0.033366" rpy="0 0 0"/>
+      <mass value="0.3057"/>
+      <inertia ixx="0.0010288" ixy="0.0001323" ixz="3.8752E-07"
+               iyy="0.00021258" iyz="-2.5397E-06" izz="0.0012127"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="package://meshes/link_4.stl"/>
+      </geometry>
+      <material name="robot_blue"/>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://meshes/link_4.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- =========== JOINT 3 (Link_3 → Link_4) ========== -->
+  <joint name="Joint_3" type="revolute">
+    <origin xyz="0.069787 0.2124 -0.05425" rpy="0 0 -0.4712"/>
+    <!-- <origin xyz="0.069787 0.2124 -0.05425" rpy="0 0 0"/> -->
+    <parent link="Link_3"/>
+    <child link="Link_4"/>
+    <axis xyz="0 0 1"/>
+    <!-- LIMITACIÓN ORIGINAL: Limita asimétricamente asfixiando el cerrado interno del codo sobre la base. -->
+    <!-- <limit lower="-2.30" upper="1.90" effort="10" velocity="0.5"/> -->
+    <limit lower="-3.14" upper="3.14" effort="10" velocity="0.5"/>
+  </joint>
+
+  <!-- ==================== LINK 5 ==================== -->
+  <link name="Link_5">
+    <inertial>
+      <origin xyz="0.00025678 0.00063953 -0.042464" rpy="0 0 0"/>
+      <mass value="0.042956"/>
+      <inertia ixx="1.7736E-05" ixy="-4.1485E-07" ixz="-2.5161E-08"
+               iyy="3.3206E-05" iyz="7.2522E-08" izz="1.7422E-05"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="package://meshes/link_5.stl"/>
+      </geometry>
+      <material name="robot_white"/>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://meshes/link_5.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+    <!-- =========== JOINT 4 (Link_4 → Link_5) ========== -->
+  <joint name="Joint_4" type="revolute">
+    <origin xyz="-0.020922 0.13502 -0.0535" rpy="0 0 0"/>
+    <parent link="Link_4"/>
+    <child link="Link_5"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.57" upper="1.57" effort="10" velocity="0.5"/>
+  </joint>
+
+  <!-- ==================== LINK 6 ==================== -->
+  <link name="Link_6">
+    <inertial>
+      <origin xyz="-0.050263 -0.012836 -0.021665" rpy="0 0 0"/>
+      <mass value="0.04619"/>
+      <inertia ixx="2.0517E-05" ixy="-3.5568E-08" ixz="1.5251E-07"
+               iyy="2.1858E-05" iyz="4.042E-09" izz="3.0443E-06"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="package://meshes/link_6.stl"/>
+      </geometry>
+      <material name="robot_gray_joint"/>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://meshes/link_6.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- ==================== LINK 7 ==================== -->
+  <link name="Link_7">
+    <inertial>
+      <origin xyz="0.052863 -0.010103 -0.021665" rpy="0 0 0"/>
+      <mass value="0.04619"/>
+      <inertia ixx="2.0517E-05" ixy="-3.5568E-08" ixz="-1.5251E-07"
+               iyy="2.1858E-05" iyz="-4.042E-09" izz="3.0443E-06"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="package://meshes/link_7.stl"/>
+      </geometry>
+      <material name="robot_gray_joint"/>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://meshes/link_7.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+      <!-- =========== JOINT 5 (Link_5 → Link_6) ========== -->
+  <joint name="Joint_5" type="prismatic">
+    <origin xyz="-2.4352E-05 0.012443 -0.051729" rpy="0 0 0"/>
+    <parent link="Link_5"/>
+    <child link="Link_6"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="0.0" upper="0.025" effort="10" velocity="0.05"/>
+  </joint>
+
+  <!-- =========== JOINT 6 (Link_5 → Link_7) ========== -->
+  <joint name="Joint_6" type="prismatic">
+    <origin xyz="-2.4352E-05 0.012443 -0.051729" rpy="0 0 0"/>
+    <parent link="Link_5"/>
+    <child link="Link_7"/>
+    <axis xyz="1 0 0"/>
+    <!-- <limit lower="0.0" upper="0.025" effort="10" velocity="0.05"/> -->
+    <limit lower="-0.025" upper="0.0" effort="10" velocity="0.05"/>
+    <mimic joint="Joint_5" multiplier="-1.0" />
+  </joint>
+
+</robot>

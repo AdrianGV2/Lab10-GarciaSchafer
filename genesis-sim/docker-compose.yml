@@ -1,0 +1,19 @@
+services:
+  manito-simulator:
+    build: .
+    container_name: manito_genesis_simulator
+    ports:
+      - "8000:8000"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - ./configs:/app/configs
+      - ./assets:/app/assets

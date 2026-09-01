@@ -1,0 +1,45 @@
+# configs/scenarios/default.yml
+viewer:
+  camera_pos: [1.5, 1.5, 1.5]
+  camera_lookat: [0.0, 0.0, 0.0]
+
+environment:
+  plane: true
+  gravity: [0.0, 0.0, -9.81]
+
+robots:
+  - name: "Manito"
+    urdf_path: "assets/robots/manito/manito.urdf"
+    position: [0.0, 0.0, 0.0]
+    fixed: true
+    is_main: true # Le dirá al CLI y al Loader cuál controlar
+  
+  # - name: "manito_2"
+  #   urdf_path: "assets/robots/manito/manito.urdf" # Ruta relativa a la RAIZ del proyecto
+  #   position: [1.0, 1.0, 0.0]
+  #   fixed: true
+  #   is_main: false
+
+objects:
+  - type: "cylinder"
+    radius: 0.02
+    height: 0.04
+    pos: [0.15, 0.0, 0.02]
+    surface: "rough"
+    color: [0.8, 0.4, 0.1]
+    name: "Cilindro Naranja" 
+  - type: "box"
+    size: [0.04, 0.04, 0.04]
+    pos: [0.0, 0.20, 0.02]
+    surface: "rough"
+    color: [0.1, 0.8, 0.3]
+    name: "Cubo Verde"
+
+stream_camera:
+  pos: [2.0, 2.0, 1.5]
+  lookat: [0.0, 0.0, 0.0]
+  res: [640, 480]
+
+objectives:
+  - id: "apilar_cubo"
+    description: "Recoge el cubo verde y apílalo encima del cilindro naranja."

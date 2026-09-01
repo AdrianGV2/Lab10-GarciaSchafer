@@ -1,0 +1,40 @@
+# configs/scenarios/scenario_4.yml
+viewer:
+  camera_pos: [2.0, 0.0, 1.5]
+  camera_lookat: [0.0, 0.0, 0.2]
+
+environment:
+  plane: true
+  gravity: [0.0, 0.0, -9.81]
+
+robots:
+  - name: "Manito 1"
+    urdf_path: "assets/robots/manito/manito.urdf"
+    position: [0.0, 0.0, 0.0]
+    euler: [0.0, 0.0, 0]
+    fixed: true
+    is_main: true
+  - name: "Manito 2"
+    urdf_path: "assets/robots/manito/manito.urdf"
+    position: [0.50, 0.0, 0.0]
+    euler: [0.0, 0.0, 0]
+    fixed: true
+    is_main: false
+
+objects:
+  - name: "Cilindro Amarillo"
+    type: "cylinder"
+    pos: [0.0, 0.2, 0.05]
+    radius: 0.02
+    height: 0.1
+    color: [1.0, 0.84, 0.0]
+    surface: "smooth"
+
+stream_camera:
+  pos: [1.0, 1.5, 1.0]
+  lookat: [0.0, 0.0, 0.2]
+  res: [640, 480]
+
+objectives:
+  - id: "intercambio"
+    description: "Manito 1 debe tomar el cilindro y dárselo a Manito 2 para que este lo eleve."

@@ -1,0 +1,44 @@
+# configs/scenarios/scenario_3.yml
+viewer:
+  camera_pos: [1.8, 1.8, 1.8]
+  camera_lookat: [0.0, 0.0, 0.0]
+
+environment:
+  plane: true
+  gravity: [0.0, 0.0, -9.81]
+
+robots:
+  - name: "Manito"
+    urdf_path: "assets/robots/manito/manito.urdf"
+    position: [0.0, 0.0, 0.0]
+    fixed: true
+    is_main: true
+
+objects:
+  - name: "Cubo Rojo"
+    type: "box"
+    pos: [0.15, 0.15, 0.02]
+    size: [0.04, 0.04, 0.04]
+    color: [1.0, 0.2, 0.2]
+    surface: "rough"
+  - name: "Cubo Verde"
+    type: "box"
+    pos: [0.15, 0.0, 0.02]
+    size: [0.04, 0.04, 0.04]
+    color: [0.2, 1.0, 0.2]
+    surface: "rough"
+  - name: "Cubo Azul"
+    type: "box"
+    pos: [0.15, -0.15, 0.02]
+    size: [0.04, 0.04, 0.04]
+    color: [0.2, 0.2, 1.0]
+    surface: "rough"
+
+stream_camera:
+  pos: [1.5, 1.5, 1.2]
+  lookat: [0.1, 0.0, 0.0]
+  res: [640, 480]
+
+objectives:
+  - id: "apliar_en_orden"
+    description: "Apila los cubos en orden: verde, azul y rojo."
