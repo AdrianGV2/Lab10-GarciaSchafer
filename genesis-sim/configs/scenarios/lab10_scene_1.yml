@@ -1,0 +1,38 @@
+# Escena 3D para problems/problem_1.pddl (caso de calibracion).
+viewer:
+  camera_pos: [1.5, 1.5, 1.5]
+  camera_lookat: [0.0, 0.0, 0.0]
+
+environment:
+  plane: true
+  gravity: [0.0, 0.0, -9.81]
+
+robots:
+  - name: "Manito"
+    urdf_path: "assets/robots/manito/manito.urdf"
+    position: [0.0, 0.0, 0.0]
+    fixed: true
+    is_main: true
+
+objects:
+  - name: "Cubo A"
+    type: "box"
+    pos: [0.15, 0.10, 0.02]
+    size: [0.04, 0.04, 0.04]
+    color: [0.9, 0.2, 0.2]
+    surface: "rough"
+  - name: "Cubo B"
+    type: "box"
+    pos: [0.15, -0.10, 0.02]
+    size: [0.04, 0.04, 0.04]
+    color: [0.2, 0.4, 0.9]
+    surface: "rough"
+
+stream_camera:
+  pos: [1.5, 1.5, 1.2]
+  lookat: [0.1, 0.0, 0.0]
+  res: [640, 480]
+
+objectives:
+  - id: "apilar_a_sobre_b"
+    description: "Recoge el Cubo A y apilalo sobre el Cubo B."

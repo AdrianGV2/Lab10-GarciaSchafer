@@ -1,0 +1,23 @@
+[project]
+name = "lab10-garciaschafer"
+version = "0.1.0"
+description = "Agente PDDL para el brazo Manito: planifica con pyperplan y ejecuta el plan en genesis-sim."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "manito-api",
+    "pyperplan>=2.1",
+    "requests>=2.34.2",
+    "pyyaml>=6.0.3",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = [
+    "py-api",
+]
+
+[tool.uv.sources]
+manito-api = { workspace = true, editable = true }
