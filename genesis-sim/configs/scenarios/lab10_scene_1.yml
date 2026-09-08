@@ -1,38 +1,83 @@
 # Escena 3D para problems/problem_1.pddl (caso de calibracion).
 viewer:
-  camera_pos: [1.5, 1.5, 1.5]
-  camera_lookat: [0.0, 0.0, 0.0]
+  camera_pos: [0.6, 0.6, 0.6]
+  camera_lookat: [0.1, 0.0, 0.1]
 
 environment:
   plane: true
   gravity: [0.0, 0.0, -9.81]
 
 robots:
+  # El robot va montado en el origen del mundo (x=0, y=0, z=0). Montarlo
+  # fuera del origen (probado con z negativo y con z=0.7, como una mesa real)
+  # dejaba J1 y el eje Z practicamente congelados: el objetivo calculado por
+  # la IK era correcto, pero el brazo fisicamente no llegaba. Con el robot
+  # exactamente en (0,0,0) los tres ejes convergen correctamente.
   - name: "Manito"
     urdf_path: "assets/robots/manito/manito.urdf"
     position: [0.0, 0.0, 0.0]
     fixed: true
     is_main: true
 
+props:
+  # (0.25, +-0.10) resulto ser una zona de baja precision para la IK del
+  # brazo: el codo queda cerca del limite entre sus dos soluciones posibles
+  # (branch flip), y el objetivo calculado variaba varios grados/varios cm
+  # entre corridas identicas -- suficiente para que la garra rozara el
+  # borde de cualquier plataforma ahi puesta. (0.15, +-0.10) convergio de
+  # forma estable y exacta en pruebas repetidas (mismo objetivo, mismo
+  # resultado), asi que las zonas se movieron ahi. La plataforma es angosta
+  # en X para no invadir la base del brazo (que esta en x=0) pero ancha en Y
+  # para tolerar el margen de error que sigue habiendo.
+  #
+  # La carcasa de la garra (Joint_5/6, no solo la punta de los dedos) es
+  # mucho mas voluminosa de lo que FINGER_REACH asume: choca contra el cubo
+  # incluso con la muneca en su altura maxima (~0.307m, el limite mecanico
+  # del eje Z). Confirmado quitando el cubo/plataforma del medio: ahi el eje
+  # Z baja sin problema en el mismo (x,y). La plataforma se bajo lo
+  # suficiente para que la carcasa libre incluso a maxima retraccion.
+  - name: "Plataforma Cubos"
+    urdf_path: "assets/props/riser.urdf"
+    position: [0.15, 0.0, 0.035]
+    fixed: true
+
 objects:
   - name: "Cubo A"
     type: "box"
-    pos: [0.15, 0.10, 0.02]
+    pos: [0.15, 0.10, 0.14]
     size: [0.04, 0.04, 0.04]
     color: [0.9, 0.2, 0.2]
     surface: "rough"
   - name: "Cubo B"
     type: "box"
-    pos: [0.15, -0.10, 0.02]
+    pos: [0.15, -0.10, 0.14]
     size: [0.04, 0.04, 0.04]
     color: [0.2, 0.4, 0.9]
     surface: "rough"
 
 stream_camera:
-  pos: [1.5, 1.5, 1.2]
-  lookat: [0.1, 0.0, 0.0]
+  pos: [0.6, 0.5, 0.5]
+  lookat: [0.2, 0.0, 0.15]
+  fov: 45
   res: [640, 480]
 
 objectives:
   - id: "apilar_a_sobre_b"
     description: "Recoge el Cubo A y apilalo sobre el Cubo B."
+
+# Puente PDDL -> mundo real, leido por agente.py (no por genesis-sim: el
+# loader de escenas solo lee las claves de arriba e ignora el resto). Vive
+# aca en vez de un archivo aparte en scenes/ para no duplicar las mismas
+# coordenadas en dos lugares.
+pddl_bridge:
+  cube_size: 0.04
+  safe_travel_z: 0.30
+
+  zones:
+    zona-a: [0.15, 0.10, 0.12]
+    zona-b: [0.15, -0.10, 0.12]
+
+  # cubo PDDL -> nombre de entidad (objects:) de arriba
+  cubes:
+    cubo-a: "Cubo A"
+    cubo-b: "Cubo B"

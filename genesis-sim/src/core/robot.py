@@ -136,7 +136,7 @@ class RobotController:
         self.gripper_dof = self._resolve_joint_dofs(RobotConfig.GRIPPER_JOINT_NAMES)
 
         self.dof = np.arange(len(_to_numpy(self.robot.get_dofs_position())), dtype=int)
-        
+
         self.robot.set_dofs_kp(np.full(len(self.dof), 4500.0), self.dof)
         self.robot.set_dofs_kv(np.full(len(self.dof), 450.0), self.dof)
         self.robot.set_dofs_force_range(
@@ -208,8 +208,15 @@ class RobotController:
             robot_base_pos=self.base_pos_world,
         )
         
-        self.ideal_cartesian = np.array([x, y, z], dtype=float)
-        
+        # Guardado en coordenadas de MUNDO: movement() siempre resta
+        # robot_base_pos de start_pos (ver start_local = start_pos - base),
+        # tanto si start_pos viene de aca como si viene de end_effector.get_pos().
+        # Guardarlo en local (como llegan x,y,z, ya relativos a la base) hacia
+        # que esa resta se aplicara dos veces en cada move_to posterior al
+        # primero, arrastrando el brazo a una posicion cada vez mas alejada
+        # del objetivo real.
+        self.ideal_cartesian = np.array([x, y, z], dtype=float) + self.base_pos_world
+
         return path
 
     def move_joints_fk(self, theta1_deg: float, z_cm: float, theta3_deg: float, theta4_deg: float = 0.0):
@@ -257,6 +264,12 @@ class RobotController:
         path = []
         for alpha in np.linspace(0, 1, 50):
             path.append(self.actual_qpos + (self.home_qpos - self.actual_qpos) * alpha)
+        # move_to() usa ideal_cartesian como punto de partida cartesiano del
+        # siguiente movimiento; si queda con el valor de antes del homing, el
+        # primer move_to tras un home() calcula su interpolacion (incluido el
+        # eje Z) desde una posicion que ya no es la real. None hace que vuelva
+        # a leerse de end_effector.get_pos() una vez el homing termine.
+        self.ideal_cartesian = None
         return path
 
     def reset_state(self):

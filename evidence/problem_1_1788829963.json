@@ -1,0 +1,15 @@
+{
+  "problem": "problems\\problem_1.pddl",
+  "scenario": "lab10_scene_1",
+  "plan": [
+    "(grip cubo-a zona-a)",
+    "(stack cubo-a cubo-b)"
+  ],
+  "plan_time_sec": 0.13128789999973378,
+  "exec_time_sec": 19.790309799998795,
+  "total_time_sec": 43.01363390000188,
+  "goal_checks": {
+    "(on cubo-a cubo-b)": true
+  },
+  "success": true
+}

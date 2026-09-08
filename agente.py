@@ -1,18 +1,19 @@
 """Agente PDDL para el brazo Manito.
 
 Resuelve un problema PDDL contra un dominio con pyperplan, ancla cada accion
-simbolica del plan a coordenadas reales usando scenes/<scene>.yml, y ejecuta
-el plan contra genesis-sim.
+simbolica del plan a coordenadas reales usando la seccion `pddl_bridge` del
+escenario de genesis-sim, y ejecuta el plan contra el simulador.
 
 Uso:
-    uv run python agente.py <domain.pddl> <problem.pddl> <scene>
+    uv run python agente.py <domain.pddl> <problem.pddl> <scenario>
 
-    uv run python agente.py dominio.pddl problems/problem_1.pddl scene_1
+    uv run python agente.py dominio.pddl problems/problem_1.pddl lab10_scene_1
 
-<scene> es el nombre de un archivo en scenes/ (sin extension). Ese archivo
-indica que escena 3D cargar en genesis-sim y a que coordenadas del mundo
-corresponde cada zona PDDL. Las posiciones iniciales de los cubos se leen
-del propio :init del problema (predicados `at`), no se duplican aqui.
+<scenario> es el nombre de un archivo en genesis-sim/configs/scenarios/ (sin
+extension). Esa misma escena 3D que carga genesis-sim trae una seccion
+`pddl_bridge:` con las coordenadas de cada zona PDDL (el loader de escenas de
+genesis-sim la ignora). Las posiciones iniciales de los cubos se leen del
+propio :init del problema (predicados `at`), no se duplican aqui.
 """
 
 import argparse
@@ -28,12 +29,27 @@ import requests
 import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parent
-SCENES_DIR = PROJECT_ROOT / "scenes"
+GENESIS_SCENARIOS_DIR = PROJECT_ROOT / "genesis-sim" / "configs" / "scenarios"
 EVIDENCE_DIR = PROJECT_ROOT / "evidence"
 
-APPROACH_HEIGHT = 0.05  # sobre el objetivo, antes de bajar
-LIFT_HEIGHT = 0.10  # al retirarse tras tomar/soltar
+SAFE_TRAVEL_Z = 0.15  # altura de traslado por defecto (relativa al origen del robot)
 POSITION_TOLERANCE = 0.03  # metros, para la validacion geometrica final
+
+# La cinematica inversa apunta a Link_5 (la muneca), pero los dedos de la
+# garra cuelgan ~5.2cm mas abajo (offset del Joint_5/Joint_6 en el URDF). Sin
+# esto Link_5 se posiciona a la altura del cubo y los dedos terminan bajo la
+# mesa en vez de rodearlo.
+FINGER_REACH = 0.052
+
+# Al soltar un cubo (drop/stack), bajar hasta la altura EXACTA donde deberia
+# quedar el centro del cubo asume que la garra sujeta el cubo con un offset
+# perfectamente rigido y constante -- no lo es (agarre por friccion, con
+# margen de error). Si el cubo ya viene un poco mas abajo de lo asumido, la
+# muneca lo termina empujando contra la superficie de destino en vez de solo
+# depositarlo, y el motor de fisica responde con un impulso que lo dispara.
+# Frenar unos centimetros antes y soltar ahi evita empujar: el cubo cae esa
+# distancia corta por gravedad, sin colision forzada.
+DROP_CLEARANCE = 0.02
 
 
 # -- lectura de PDDL (solo lo que el agente necesita: :init y :goal) -------
@@ -201,43 +217,63 @@ class World:
         self.positions[cube] = [base[0], base[1], base[2] + self.cube_size]
 
 
-def execute_action(sim: SimClient, robot_origin, world: World, name: str, args):
-    def to_robot_frame(point):
-        return [point[i] - robot_origin[i] for i in range(3)]
+def _go_and_act(sim: SimClient, robot_origin, safe_z: float, target_world, act_fn, descend_margin: float = 0.0):
+    """Sube derecho donde este el brazo, viaja en plano a altura segura, y
+    recien ahi baja derecho sobre el objetivo.
 
+    Ir directo (x,y,z simultaneo) desde la posicion anterior hasta encima del
+    objetivo interpola las juntas en linea recta *en el espacio articular*, no
+    en cartesiano: el brazo puede pasar a baja altura durante la traslacion y
+    arrastrar cualquier cubo que este en el camino. Subir-trasladar-bajar evita
+    esa colision.
+
+    `descend_margin` frena la bajada esa distancia antes del objetivo (ver
+    DROP_CLEARANCE) -- usarlo al soltar un cubo, nunca al tomarlo.
+    """
+    ee_world = sim.state()["robot_end_effectors"]["Manito"]
+    ee = [ee_world[i] - robot_origin[i] for i in range(3)]
+    target = [target_world[i] - robot_origin[i] for i in range(3)]
+    grip_z = target[2] + FINGER_REACH + descend_margin
+
+    sim.move_to(ee[0], ee[1], safe_z)  # subir derecho donde esta
+    sim.move_to(target[0], target[1], safe_z)  # trasladar en plano, arriba
+
+    # Bajar en un par de tramos en vez de un solo salto grande: cada move_to
+    # tiene un piso minimo de pasos de interpolacion, asi que dividir la
+    # bajada en tramos mas cortos reparte esos pasos en mas tiempo real y se
+    # ve (y es) mas controlado que un solo tramo largo.
+    midpoint_z = safe_z + (grip_z - safe_z) / 2
+    sim.move_to(target[0], target[1], midpoint_z)
+    sim.move_to(target[0], target[1], grip_z)  # bajar hasta que LOS DEDOS lleguen al objetivo
+
+    act_fn()
+    sim.move_to(target[0], target[1], safe_z)  # retirarse derecho hacia arriba
+
+
+def execute_action(sim: SimClient, robot_origin, safe_z: float, world: World, name: str, args):
     if name == "grip":
         cube, _zone = args
-        target = to_robot_frame(world.pos_of(cube))
-        sim.move_to(target[0], target[1], target[2] + APPROACH_HEIGHT)
-        sim.move_to(*target)
-        sim.gripper(True)
-        sim.move_to(target[0], target[1], target[2] + LIFT_HEIGHT)
+        _go_and_act(sim, robot_origin, safe_z, world.pos_of(cube), lambda: sim.gripper(True))
 
     elif name == "drop":
         cube, zone = args
-        target = to_robot_frame(world.zones[zone])
-        sim.move_to(target[0], target[1], target[2] + APPROACH_HEIGHT)
-        sim.move_to(*target)
-        sim.gripper(False)
-        sim.move_to(target[0], target[1], target[2] + LIFT_HEIGHT)
+        _go_and_act(
+            sim, robot_origin, safe_z, world.zones[zone], lambda: sim.gripper(False),
+            descend_margin=DROP_CLEARANCE,
+        )
         world.place_on_zone(cube, zone)
 
     elif name == "stack":
         cube, base_cube = args
         world.place_on_cube(cube, base_cube)
-        target = to_robot_frame(world.pos_of(cube))
-        sim.move_to(target[0], target[1], target[2] + APPROACH_HEIGHT)
-        sim.move_to(*target)
-        sim.gripper(False)
-        sim.move_to(target[0], target[1], target[2] + LIFT_HEIGHT)
+        _go_and_act(
+            sim, robot_origin, safe_z, world.pos_of(cube), lambda: sim.gripper(False),
+            descend_margin=DROP_CLEARANCE,
+        )
 
     elif name == "unstack":
         cube, _base_cube = args
-        target = to_robot_frame(world.pos_of(cube))
-        sim.move_to(target[0], target[1], target[2] + APPROACH_HEIGHT)
-        sim.move_to(*target)
-        sim.gripper(True)
-        sim.move_to(target[0], target[1], target[2] + LIFT_HEIGHT)
+        _go_and_act(sim, robot_origin, safe_z, world.pos_of(cube), lambda: sim.gripper(True))
 
     else:
         raise ValueError(f"Accion desconocida en el plan: {name}")
@@ -246,9 +282,9 @@ def execute_action(sim: SimClient, robot_origin, world: World, name: str, args):
 # -- validacion: compara el estado real del simulador contra la meta -------
 
 
-def validate_goal(sim: SimClient, scene: dict, world: World, goal_literals):
+def validate_goal(sim: SimClient, bridge: dict, world: World, goal_literals):
     entities = sim.state().get("entities") or {}
-    cube_entity = scene.get("cubes", {})
+    cube_entity = bridge.get("cubes", {})
     checks = []
 
     for name, args in goal_literals:
@@ -268,7 +304,7 @@ def validate_goal(sim: SimClient, scene: dict, world: World, goal_literals):
         elif name == "at":
             cube, zone = args
             cube_pos = entities.get(cube_entity.get(cube))
-            zone_pos = scene["zones"].get(zone)
+            zone_pos = bridge["zones"].get(zone)
             ok = (
                 cube_pos is not None
                 and zone_pos is not None
@@ -294,12 +330,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("domain", type=Path)
     parser.add_argument("problem", type=Path)
-    parser.add_argument("scene", help="Nombre del archivo en scenes/ (sin extension), ej: scene_1")
+    parser.add_argument("scenario", help="Nombre del archivo en genesis-sim/configs/scenarios/ (sin extension), ej: lab10_scene_1")
     parser.add_argument("--url", default=None, help="URL de genesis-sim (por defecto MANITO_URL o http://localhost:8000)")
     args = parser.parse_args()
 
-    scene_path = SCENES_DIR / f"{args.scene}.yml"
-    scene = yaml.safe_load(scene_path.read_text(encoding="utf-8"))
+    scenario_path = GENESIS_SCENARIOS_DIR / f"{args.scenario}.yml"
+    scenario = yaml.safe_load(scenario_path.read_text(encoding="utf-8"))
+    bridge = scenario["pddl_bridge"]
+    genesis_scenario = f"configs/scenarios/{args.scenario}.yml"
     problem_text = args.problem.read_text(encoding="utf-8")
     sim_url = args.url or os.environ.get("MANITO_URL", "http://localhost:8000")
     sim = SimClient(sim_url)
@@ -312,25 +350,26 @@ def main() -> None:
     for name, plan_args in plan:
         print(f"        ({name} {' '.join(plan_args)})")
 
-    print(f"[2/4] Cargando {scene['genesis_scenario']} en {sim_url}...")
-    expected_entities = scene.get("cubes", {}).values()
-    sim.reload_scenario(scene["genesis_scenario"], expected_entities)
+    print(f"[2/4] Cargando {genesis_scenario} en {sim_url}...")
+    expected_entities = bridge.get("cubes", {}).values()
+    sim.reload_scenario(genesis_scenario, expected_entities)
     sim.home()
 
     cube_zone = read_initial_cube_zones(problem_text)
-    world = World(scene["zones"], cube_zone, scene["cube_size"])
+    world = World(bridge["zones"], cube_zone, bridge["cube_size"])
     robot_origin = sim.state()["entities"]["Manito"]
+    safe_z = bridge.get("safe_travel_z", SAFE_TRAVEL_Z)
 
     print("[3/4] Ejecutando el plan en el simulador...")
     exec_start = time.perf_counter()
     for name, plan_args in plan:
         print(f"      -> ({name} {' '.join(plan_args)})")
-        execute_action(sim, robot_origin, world, name, plan_args)
+        execute_action(sim, robot_origin, safe_z, world, name, plan_args)
     exec_time = time.perf_counter() - exec_start
 
     print("[4/4] Validando la meta contra el estado real del simulador...")
     goal_literals = read_goal_literals(problem_text)
-    checks = validate_goal(sim, scene, world, goal_literals)
+    checks = validate_goal(sim, bridge, world, goal_literals)
     all_ok = True
     for label, ok in checks:
         if ok is None:
@@ -352,7 +391,7 @@ def main() -> None:
         json.dumps(
             {
                 "problem": str(args.problem),
-                "scene": args.scene,
+                "scenario": args.scenario,
                 "plan": [f"({n} {' '.join(a)})" for n, a in plan],
                 "plan_time_sec": plan_time,
                 "exec_time_sec": exec_time,
